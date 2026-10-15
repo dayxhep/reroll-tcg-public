@@ -24,6 +24,8 @@ const HEAD = `/* ═════════════════════
    © 2022 Simon Goellner (@simeydotme), sous GPL-3.0. Par contamination, le fichier
    assemblé est donc lui aussi sous GPL-3.0. Pris isolément, src/01-card.css et
    src/03-editions.css sont du travail original sans cette contrainte.
+
+   Sources completes (obligation GPL-3.0) : https://github.com/dayxhep/reroll-tcg-public
    ═══════════════════════════════════════════════════════════════════════════ */
 
 `;
