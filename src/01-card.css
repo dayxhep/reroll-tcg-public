@@ -1,0 +1,576 @@
+/* ═══════════════ 1. GABARIT DE CARTE ═══════════════
+   Travail original REROLL. Aucun style global : tout est porté par .card ou ses
+   descendants, pour qu'intégrer le composant ne perturbe pas la page hôte. */
+
+/* Réinitialisation limitée au composant. La version d'origine ciblait *, ul et
+   blockquote globalement, ce qu'un composant embarqué n'a pas le droit de faire. */
+.card,
+.card *,
+.card *::before,
+.card *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+.card ul { list-style: none; }
+.card blockquote { quotes: none; }
+
+/* la police du composant ne dépend plus de celle du body de la page hôte */
+.card {
+  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+
+  /* Une carte se manipule au pointeur : sans ça, le balayage qui l'incline
+     sélectionne son texte et le curseur passe en barre d'insertion, ce qui la
+     trahit comme du texte au lieu d'un objet. Les deux propriétés sont héritées,
+     les descendants suivent. */
+  user-select: none;
+  -webkit-user-select: none; /* Safari < 17 */
+  cursor: default;
+}
+
+:root {
+  /* Seul --accent se définit ici. Les 3 autres en sont dérivés juste après, donc une carte
+     qui pose style="--accent: #6a50a7" repeint tout son gabarit sans rien déclarer d'autre. */
+  --accent: #e31b23;
+
+  --bg-deep: #0a0a0a;
+  --bg-panel: #0e0e0e;
+  --bg-surface: #050505;
+
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.5); /* contraste ≥4.5:1 sur --bg-panel (WCAG AA texte normal) */
+
+  --border-default: rgba(255, 255, 255, 0.08);
+
+  /* hauteur totale du contenu de carte, identique dans les 3 versions.
+     Mesurée sur la Classic : illustration 860 + description 159,5 + pied 57. */
+  --card-height: 1076px;
+
+  /* découpe du cadre à angles coupés. Partagée par .card, .card-inner et les couches
+     d'effet, qui doivent épouser exactement la même silhouette. */
+  --card-clip: polygon(
+    36px 0, calc(100% - 36px) 0, 100% 36px,
+    100% calc(100% - 36px), calc(100% - 36px) 100%, 36px 100%,
+    0 calc(100% - 36px), 0 36px
+  );
+
+  /* rareté de la carte affichée : glow de cadre + accents de coin. Change par carte. */
+  --rarity: #c04fc0;
+  --rarity-glow: rgba(192, 79, 192, 0.35);
+}
+
+/* Dérivation des accents, déclarée sur :root ET sur .card. Une custom property résout ses
+   var() sur l'élément où elle est DÉCLARÉE : déclarée dans le seul :root, elle resterait
+   figée sur le rouge de marque même si une carte redéfinit --accent plus bas.
+   Les bornes sur la clarté ne sont pas cosmétiques : sans le plafond à 38%, une teinte
+   claire (cyan, or) donnerait un --accent-dark sur lequel le texte blanc tombe sous 3:1. */
+:root,
+.card {
+  --accent-light: hsl(from var(--accent) h calc(s * 1.27) min(calc(l + 9), 72));
+  --accent-dark: hsl(from var(--accent) h s clamp(20, calc(l - 11), 38));
+  --accent-glow: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+
+/* ══════════════ CARD — cadre à angles coupés sur les 4 coins (motif D20), pas de radius ══════════════ */
+/* la bordure grise est simulée en 2 couches de clip-path (un fond gris légèrement plus grand
+   derrière, un fond carte par-dessus rétréci de l'épaisseur voulue) car border+clip-path ne
+   suit pas la découpe nativement */
+.card {
+  width: 680px;
+  zoom: 0.6;
+  padding: 2px;
+  background: var(--border-default);
+  box-shadow: 0 28px 80px rgba(0,0,0,0.6), 0 0 48px var(--rarity-glow);
+  clip-path: var(--card-clip);
+  position: relative;
+}
+.card-inner {
+  background: var(--bg-panel);
+  height: var(--card-height);
+  display: flex;
+  flex-direction: column;
+  clip-path: var(--card-clip);
+}
+
+/* ══════════════ EFFETS HOLOGRAPHIQUES ══════════════
+   Portage de pokemon-cards-css (Simon Goellner, GPL-3.0), cf. README.
+   Mécanique : un rotateur 3D, une couche « shine » en color-dodge qui porte le motif
+   holographique, une couche « glare » en overlay qui porte le reflet direct. Les deux
+   sont pilotées par des variables que le JS met à jour au pointeur. */
+/* La perspective doit être portée par un PARENT de la carte : posée sur .card
+   elle-même, rotateX/rotateY s'aplatiraient en simple cisaillement. L'élément qui
+   porte le JSON en fait office, il n'y a donc rien de plus à écrire ; .card-scene
+   reste pour un balisage rédigé à la main. */
+.card-scene,
+[data-rr-tcg-card] {
+  perspective: 900px;
+  /* le contexte 3D doit englober la carte zoomée, pas l'inverse */
+  width: fit-content;
+}
+/* --rotate-x pilote rotateY et --rotate-y pilote rotateX : nommage de la source, conservé
+   pour que les formules portées restent lisibles telles quelles. */
+.card {
+  transform: rotateY(var(--rotate-x, 0deg)) rotateX(var(--rotate-y, 0deg));
+  transform-style: preserve-3d;
+  transition: transform .15s ease-out;
+}
+.card.is-interacting { transition: none; }
+
+/* Les couches vivent dans .art-wrap et s'arrêtent donc au bord de l'illustration.
+   Étagement dans l'illustration : image 0 · bandeau du nom 1 · effet 2 · surcouches 3.
+   Le nom passe sous l'effet — il doit se lire comme imprimé dans l'image ; tags, stats
+   et badge PV passent au-dessus, ils ont leur propre matière. */
+.card-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: var(--card-opacity, 0);
+  transition: opacity .3s ease-out;
+  mix-blend-mode: var(--fx-blend);
+}
+
+/* Plancher de matière : une carte à effet se devine au repos au lieu d'être mate.
+   Source unique de la valeur — le pilote lit --fx-rest et y ramène l'animation
+   plutôt qu'à zéro, sinon la première manipulation effacerait le plancher en
+   écrivant --card-opacity: 0 en style en ligne. */
+.card[data-fx]:not([data-fx=""]) {
+  --fx-rest: .15;
+  --card-opacity: var(--fx-rest);
+}
+.card-shine {
+  --fx-blend: color-dodge;
+  filter: brightness(.85) contrast(2.75) saturate(.65);
+}
+.card-glare {
+  --fx-blend: overlay;
+  background-image: radial-gradient(
+    farthest-corner circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
+    hsla(0, 0%, 100%, 0.8) 10%,
+    hsla(0, 0%, 100%, 0.65) 20%,
+    hsla(0, 0%, 0%, 0.5) 90%
+  );
+}
+
+/* ── sceau REROLL : logo verni sur les seules Collection, coin haut-droit.
+   Invisible au repos et sans contour propre : il n'existe que par le reflet, comme un
+   vernis sélectif. Deux conditions à son allumage, multipliées :
+     --card-opacity  la carte est manipulée
+     --seal-lit      la lumière passe SUR le sceau (distance pointeur → sceau, calculée
+                     en JS, car CSS ne sait pas faire d'hypoténuse)
+   color-dodge : le sceau n'allume que ce qui a déjà de la luminance, donc il se révèle
+   par plaques selon l'illustration au lieu de flotter comme un autocollant. ── */
+.card-seal { display: none; }
+.card--collection .card-seal {
+  display: block;
+  position: absolute;
+  top: 26px;
+  right: 22px;
+  width: 118px;
+  height: 118px;
+  z-index: 3;
+  pointer-events: none;
+  /* ni opacité ni fusion ici : les deux créeraient un contexte d'empilement qui
+     isolerait les couches ci-dessous et les empêcherait de fusionner avec la carte */
+}
+
+/* Deux couches, et l'ordre compte. Le color-dodge d'un seul aplat coloré donnait une
+   teinte fausse : il divise le fond par l'inverse de la source, donc c'est l'illustration
+   qui dictait la couleur — un violet virait bleu sous un néon bleu, un jaune virait orange.
+     1. seal-shade  creuse la forme en multiply : le fond sous le sceau devient sombre
+                    et neutre, ce qui lui retire son pouvoir de teinter,
+     2. seal-lit    y ajoute la lumière en plus-lighter, purement additif, donc la teinte
+                    de rareté arrive intacte au lieu d'être recalculée depuis le fond. */
+/* le facteur 0.7 tempère les deux couches ensemble : creux et lumière gardent leur
+   équilibre, seul le sceau dans son ensemble s'atténue */
+.card-seal use { --lit: calc(var(--card-opacity, 0) * var(--seal-lit, 0) * 0.7); }
+.card-seal .seal-shade {
+  fill: #04070d;
+  opacity: calc(var(--lit) * 0.8);
+  mix-blend-mode: multiply;
+}
+.card-seal .seal-lit {
+  fill: var(--seal-color, var(--accent));
+  opacity: var(--lit);
+  mix-blend-mode: plus-lighter;
+}
+
+/* Rareté : réservée aux Collection. Sur les autres versions data-rarity n'a aucun effet,
+   aucune règle ne le lit. */
+.card--collection { --seal-color: #e31b23; }                              /* normal */
+.card--collection[data-rarity="epic"] { --seal-color: #a855f7; }          /* épique */
+.card--collection[data-rarity="legendary"] { --seal-color: #f7c948; }     /* légendaire */
+
+/* ══════════════ MATIÈRES ══════════════
+   Une carte n'a pas une surface unique : l'effet holographique ne vaut que pour
+   l'illustration. Les autres zones ont leur propre réponse à la lumière, toutes pilotées
+   par les mêmes variables de pointeur.
+     · métal brossé — hexagones de stats, badge PV, tags
+     · mat          — pavé de description et pied de carte
+     · verni        — le texte de ces deux zones
+   Chaque matière ne s'allume qu'au survol : --card-opacity vaut 0 au repos. */
+
+/* ── laque polie : aucune grain, une tache spéculaire nette qui se déplace en 2D,
+   posée sur un voile de courbure fixe (le haut capte la lumière, le bas retombe).
+   C'est l'absence de trame et la petitesse du point chaud qui lisent « lisse et brillant ». ── */
+.stat-hex::after,
+.tag::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: var(--card-opacity, 0);
+  transition: opacity .3s ease-out;
+  mix-blend-mode: overlay;
+  background-image:
+    radial-gradient(
+      60% 75% at calc(var(--pointer-from-left, .5) * 100%) calc(var(--pointer-from-top, .5) * 100%),
+      hsla(0, 0%, 100%, 0.95) 0%,
+      hsla(0, 0%, 100%, 0.45) 16%,
+      hsla(0, 0%, 100%, 0.10) 34%,
+      transparent 55%),
+    linear-gradient(180deg,
+      hsla(0, 0%, 100%, 0.30) 0%,
+      hsla(0, 0%, 100%, 0.05) 38%,
+      transparent 62%,
+      hsla(0, 0%, 0%, 0.28) 100%);
+}
+/* l'hexagone du SVG, retranscrit en pourcentages : suit le zoom du badge PV */
+.stat-hex::after {
+  clip-path: polygon(50% 3.33%, 96.15% 25%, 96.15% 75%, 50% 96.67%, 3.85% 75%, 3.85% 25%);
+}
+/* le clip-path du tag rogne déjà ses descendants, la bande épouse le parallélogramme */
+.tag { position: relative; }
+
+/* ── mat : diffusion large et sourde, aucune réflexion nette ── */
+.quote,
+.card-footer { position: relative; }
+.quote::after,
+.card-footer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--card-opacity, 0);
+  transition: opacity .3s ease-out;
+  mix-blend-mode: soft-light;
+  background-image: radial-gradient(150% 130% at var(--pointer-x, 50%) var(--pointer-y, 50%),
+    hsla(0, 0%, 100%, 0.16) 0%, transparent 70%);
+}
+
+/* ── verni : une bande claire traverse les lettres. background-clip découpe le dégradé
+   sur les glyphes ; -webkit-text-fill-color (et non color) vide le remplissage, ce qui
+   laisse currentColor résoudre la teinte d'origine dans le dégradé lui-même. ── */
+.quote-text,
+.art-credit,
+.card-footer > span {
+  --gloss: calc(var(--pointer-from-left, .5) * 100%);
+  background-image: linear-gradient(100deg,
+    currentColor calc(var(--gloss) - 15%),
+    color-mix(in srgb, #fff calc(var(--card-opacity, 0) * 100%), currentColor) var(--gloss),
+    currentColor calc(var(--gloss) + 15%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── bandeau nom : overlay en bas de l'illustration (avec un peu d'image visible en dessous),
+   dégradé noir → transparent, bordure rouge fine centrée verticalement avec le texte ── */
+.card-banner {
+  position: absolute;
+  bottom: 20px; left: 0; right: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, rgba(5,5,5,0.6) 0%, rgba(5,5,5,0.6) 30%, transparent 100%);
+  padding: 12px;
+  border-left: 4px solid var(--accent);
+  display: flex;
+  align-items: center;
+}
+.card-name {
+  /* --font-title : typographie complète du nom, en propriété raccourcie, réglable par carte :
+     style="--font-title: italic 24px/1 'Vollkorn', serif". Le raccourci exige au minimum une
+     taille et une famille, et remet de lui-même style / variante / graisse à leur valeur
+     initiale — la carte contrôle donc tout, sans hériter d'un 700 imposé ici.
+     Polices importées, reprises des business de reroll-crimi : 'Vollkorn', 'Bowlby One SC',
+     'Lobster', 'UnifrakturMaguntia', 'Share Tech Mono'. */
+  font: var(--font-title, 700 24px/1 'JetBrains Mono', monospace);
+
+  /* Capitales et interlettrage ne font pas partie du raccourci : on les neutralise à part dès
+     qu'une police est fournie, sans quoi une script ou une gothique se casse dessus.
+     --_f vaut la valeur de --font-title si elle existe, sinon « invalide garantie ».
+     Absente : var(--_f, X) rend X. Présente : la valeur est invalide pour ces deux propriétés,
+     qui retombent alors sur leur valeur héritée (none / normal).
+
+     --case-title et --tracking-title passent avant cette bascule et la court-circuitent dans
+     les deux sens : une carte peut garder ses capitales sous une police choisie, ou y renoncer
+     sans en fournir. Elles sont déclarées à part parce que ni text-transform ni letter-spacing
+     n'entrent dans le raccourci font. */
+  --_f: var(--font-title);
+  text-transform: var(--case-title, var(--_f, uppercase));
+  letter-spacing: var(--tracking-title, var(--_f, 1px));
+  color: var(--text-primary);
+  padding-left: 12px;
+}
+
+/* ── portrait + stats overlay en haut-droite ── */
+.art-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: var(--bg-surface);
+}
+.art-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+}
+.art-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(5,5,5,0) 55%, rgba(5,5,5,0.9) 100%);
+  pointer-events: none;
+}
+/* léger scanline HUD, très discret, purement décoratif */
+.art-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(180deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 6px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* stat hex grid, 2 lignes de 3 en quinconce (nid d'abeille).
+   Chaque rangée est un flex row indépendant (pas de flex-wrap fragile) ;
+   la 2e rangée est un bloc entier remonté (margin-top négatif) et décalé à droite (margin-left) d'un demi-hexagone. */
+/* largeur fixe = rangée la plus large (rangée 2 décalée de 14px + ses 3 hex + 2 gaps = 96px)
+   pour que l'ancrage right:10px reste stable quel que soit le contenu */
+.stat-grid {
+  position: absolute;
+  bottom: 84px;
+  right: 16px;
+  width: 192px;
+  display: flex;
+  flex-direction: column;
+  z-index: 3;
+}
+.stat-row {
+  display: flex;
+  gap: 4px;
+}
+.stat-row + .stat-row {
+  margin-top: -11px; /* bord-à-bord + 4px de gap visible, comme le gap horizontal entre hexagones */
+  margin-left: 28px;
+}
+.stat-hex {
+  width: 52px;
+  height: 60px;
+  position: relative;
+  flex-shrink: 0;
+}
+.stat-hex > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+/* style par défaut : les 4 stats non prioritaires — fond noir, contour rouge, texte/icône gris clair */
+.stat-hex .hex-shape {
+  fill: var(--bg-surface);
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+.stat-hex .hex-sheen { display: none; }
+/* hauteur de ligne fixe pour l'icône : neutralise les bounding box différentes entre glyphes MDI
+   (ex: heart-pulse vs clover ne sont pas centrés pareil dans leur propre glyphe) */
+.stat-hex-content i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-secondary);
+}
+.stat-hex-val {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  line-height: 1.1;
+}
+
+/* style mis en valeur : les 2 stats les plus hautes de la carte — fond rouge en dégradé (relief), texte/icône blancs, pas de liseré blanc */
+.stat-hex.is-key .hex-shape {
+  fill: var(--accent-dark);
+  stroke: var(--accent-dark);
+}
+/* relief : aplat --accent-dark, recouvert d'un aplat --accent-light fondu vers le bas.
+   Un <linearGradient> SVG résout ses var() sur lui-même, dans les defs globaux — il ne
+   pourrait donc pas suivre un --accent redéfini sur une carte. Le masque CSS, lui, est
+   sans couleur, et le fill se résout bien sur l'élément, donc dans le contexte de la carte.
+   Même stroke que la forme dessous : le contour reste uniforme malgré le fondu. */
+.stat-hex.is-key .hex-sheen {
+  display: block;
+  fill: var(--accent-light);
+  stroke: var(--accent-dark);
+  stroke-width: 2.5;
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+}
+.stat-hex.is-key .stat-hex-content i,
+.stat-hex.is-key .stat-hex-val {
+  color: var(--text-primary);
+}
+
+.stat-hex-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+/* tags en haut-gauche de l'illustration */
+.tags {
+  position: absolute;
+  left: 12px;
+  top: 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 3;
+}
+/* parallélogramme incliné (façon "//////"), pas un rectangle droit */
+.tag {
+  background: linear-gradient(180deg, var(--accent-light) 0%, var(--accent-dark) 100%);
+  color: var(--text-primary);
+  font-size: 17px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 6px 22px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+  clip-path: polygon(11px 0, 100% 0, calc(100% - 11px) 100%, 0 100%);
+}
+
+/* PV : l'hexagone de stat mis en valeur (.is-key), agrandi 1,5× — même dégradé, même
+   contour, même structure icône + valeur. Le zoom est sur l'enfant pour que top/right
+   restent en pixels de carte. */
+.pv-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 3;
+}
+.pv-badge .stat-hex { zoom: 1.5; }
+/* pas d'icône ici : le chiffre seul, en double de la taille des stats.
+   translateY : Rajdhani a une ascendante de 37 pour 14 de descendante, donc le chiffre
+   se centre 1,5px trop haut dans sa ligne (mesuré au TextMetrics à 40px). */
+.pv-badge .stat-hex-val {
+  /* même typo que le nom, mais le badge garde sa taille : les déclarations qui suivent le
+     raccourci l'emportent sur ce qu'il a posé. tabular-nums est réaffirmé car le raccourci
+     remet font-variant à normal. */
+  font: var(--font-title, 800 40px/1 'Rajdhani'), sans-serif;
+  font-size: 40px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transform: translateY(1.5px);
+}
+
+/* citation + credit artiste */
+.quote {
+  padding: 24px 32px;
+  font-style: italic;
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  border-top: 2px solid var(--border-default);
+  background: var(--bg-surface);
+}
+/* background-clip: text ne peint que la boîte : l'italique qui déborde en fin de ligne
+   serait rogné. Bloc + marge intérieure compensée pour couvrir ce débord. */
+.quote-text {
+  display: block;
+  padding-inline: .1em .25em;
+  margin-inline: -.1em -.25em;
+}
+.art-credit {
+  display: block;
+  margin-top: 12px;
+  text-align: right;
+  font-family: 'Rajdhani', sans-serif;
+  font-style: normal;
+  font-size: 18px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  padding: 16px 32px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+  border-top: 2px solid var(--accent-dark);
+}
+/* colonnes de largeur égale : le logo reste centré sur la carte quelle que soit la largeur
+   des libellés latéraux ("01 / 40" et "Collector" n'ont pas la même chasse) */
+.card-footer > * { flex: 1 1 0; }
+.card-footer .footer-serial,
+.card-footer .footer-edition { text-align: right; }
+.card-footer .footer-mark { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-muted); }
+/* currentColor : le logo prend la couleur du texte du pied, pas l'accent */
+.card-footer .footer-logo { width: 22px; height: 22px; fill: currentColor; flex-shrink: 0; }
+
+/* ══════════════ VERSIONS ══════════════ */
+/* Classic = le gabarit par défaut, aucune règle.
+
+   Full-Art : la description saute, l'illustration s'étend. Le nom et les stats sont
+   ancrés au bas de .art-wrap, ils descendent donc tout seuls.
+   La teinte se règle carte par carte avec une seule variable en style inline sur .card :
+   style="--accent: #4fc1e9". Les tokens light / dark / glow en sont dérivés dans :root. */
+.card--full-art .quote { display: none; }
+/* seul le fond noir des stats non prioritaires s'atténue : l'illustration transparaît
+   dessous, mais les chiffres et les hexagones is-key gardent leur opacité pleine */
+.card--full-art .stat-hex:not(.is-key) .hex-shape { fill-opacity: 0.3; }
+
+/* Collection : uniquement le nom et le pied. */
+/* crédit posé sur l'illustration : en Classic il vit dans la description, qui saute ici.
+   Pas de fond, juste une ombre portée — le dégradé de .art-wrap assombrit déjà ce bord. */
+.art-credit-overlay { display: none; }
+.card--full-art .art-credit-overlay,
+.card--collection .art-credit-overlay {
+  display: block;
+  position: absolute;
+  right: 24px;
+  bottom: 3px;
+  z-index: 2;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.card--collection .quote,
+.card--collection .tags,
+.card--collection .stat-grid,
+.card--collection .pv-badge { display: none; }
+
+/* le rang de collection cède la place à la mention d'injouabilité, au même endroit que
+   le "This card cannot be used in a Duel" de Yu-Gi-Oh : là où figure l'identifiant de série */
+.footer-edition { display: none; }
+.card--collection .footer-serial { display: none; }
+.card--collection .footer-edition { display: inline; }
+

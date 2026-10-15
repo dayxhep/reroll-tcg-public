@@ -1,0 +1,615 @@
+/* ═══════════════ 2. EFFETS HOLOGRAPHIQUES ═══════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EFFETS HOLOGRAPHIQUES — REROLL TCG
+   Porté de pokemon-cards-css © 2022 Simon Goellner (@simeydotme), sous GPL-3.0.
+   https://github.com/simeydotme/pokemon-cards-css
+   Ce fichier est donc lui aussi sous GPL-3.0.
+
+   NE PAS ÉDITER À LA MAIN : généré par tools/port-effects.mjs depuis un clone de la source.
+   Un effet s'applique avec data-fx="<nom>" sur .card.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── socle commun : tokens et couches, repris de base.css + cards.css de la source ── */
+.card {
+  --grain: url("./assets/fx/grain.webp");
+  --glitter: url("./assets/fx/glitter.png");
+  --glittersize: 25%;
+
+  --space: 5%;
+  --angle: 133deg;
+  --imgsize: cover;
+  /* la source superpose un masque de dorure propre à chaque carte ; on n'en a pas,
+     mais le token doit rester valide sinon toute la pile de background saute */
+  --foil: none;
+
+  --red: #f80e35;
+  --yellow: #eedf10;
+  --green: #21e985;
+  --blue: #0dbde9;
+  --violet: #c929f1;
+
+  --sunpillar-1: hsl(2, 100%, 73%);
+  --sunpillar-2: hsl(53, 100%, 69%);
+  --sunpillar-3: hsl(93, 100%, 69%);
+  --sunpillar-4: hsl(176, 100%, 76%);
+  --sunpillar-5: hsl(228, 100%, 74%);
+  --sunpillar-6: hsl(283, 100%, 73%);
+
+  --sunpillar-clr-1: var(--sunpillar-1);
+  --sunpillar-clr-2: var(--sunpillar-2);
+  --sunpillar-clr-3: var(--sunpillar-3);
+  --sunpillar-clr-4: var(--sunpillar-4);
+  --sunpillar-clr-5: var(--sunpillar-5);
+  --sunpillar-clr-6: var(--sunpillar-6);
+}
+
+/* la source empile ses couches en grid ; ici en absolu, même résultat */
+.card-shine::before,
+.card-shine::after,
+.card-glare::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* rotation de la palette d'une couche à l'autre : c'est elle qui donne l'irisation */
+.card-shine::before {
+  --sunpillar-clr-1: var(--sunpillar-5);
+  --sunpillar-clr-2: var(--sunpillar-6);
+  --sunpillar-clr-3: var(--sunpillar-1);
+  --sunpillar-clr-4: var(--sunpillar-2);
+  --sunpillar-clr-5: var(--sunpillar-3);
+  --sunpillar-clr-6: var(--sunpillar-4);
+}
+.card-shine::after {
+  --sunpillar-clr-1: var(--sunpillar-6);
+  --sunpillar-clr-2: var(--sunpillar-1);
+  --sunpillar-clr-3: var(--sunpillar-2);
+  --sunpillar-clr-4: var(--sunpillar-3);
+  --sunpillar-clr-5: var(--sunpillar-4);
+  --sunpillar-clr-6: var(--sunpillar-5);
+}
+
+/* ────────────────────────────── galaxy ────────────────────────────── */
+.card[data-fx="galaxy"] .card-shine {
+  --space: 4%;
+
+
+  background-image: 
+    url("./assets/fx/cosmos-bottom.png"), 
+    repeating-linear-gradient(
+      82deg, 
+      hsl(53, 65%, 60%) calc(var(--space)*1), 
+      hsl(93, 56%, 50%) calc(var(--space)*2), 
+      hsl(176, 54%, 49%) calc(var(--space)*3), 
+      hsl(228, 59%, 55%) calc(var(--space)*4), 
+      hsl(283, 60%, 55%) calc(var(--space)*5), 
+      hsl(326, 59%, 51%) calc(var(--space)*6), 
+      hsl(326, 59%, 51%) calc(var(--space)*7), 
+      hsl(283, 60%, 55%) calc(var(--space)*8), 
+      hsl(228, 59%, 55%) calc(var(--space)*9), 
+      hsl(176, 54%, 49%) calc(var(--space)*10), 
+      hsl(93, 56%, 50%) calc(var(--space)*11), 
+      hsl(53, 65%, 60%) calc(var(--space)*12) 
+    ), 
+    radial-gradient( 
+      farthest-corner circle 
+      at var(--pointer-x) var(--pointer-y), 
+      hsla(180, 100%, 89%, 0.5) 5%, 
+      hsla(180, 14%, 57%, 0.3) 40%, 
+      hsl(0, 0%, 0%) 130% 
+  );
+
+  background-blend-mode: 
+    color-burn, 
+    multiply;
+
+  background-position: 
+    var(--cosmosbg, center center),
+    calc( 10% + ( var(--pointer-from-left) * 80% ) ) calc( 10% + ( var(--pointer-from-top) * 80% ) ), 
+    center center;
+
+  background-size: cover, 400% 900%, cover;
+
+  filter: brightness(1) contrast(1) saturate(.8);
+  mix-blend-mode: color-dodge;
+}
+
+.card[data-fx="galaxy"] .card-shine:before {
+  content: "";
+  z-index: 2;
+
+  background-image: 
+    url("./assets/fx/cosmos-middle-trans.png"), 
+    repeating-linear-gradient(
+      82deg, 
+      hsl(53, 65%, 60%) calc(var(--space)*1), 
+      hsl(93, 56%, 50%) calc(var(--space)*2), 
+      hsl(176, 54%, 49%) calc(var(--space)*3), 
+      hsl(228, 59%, 55%) calc(var(--space)*4), 
+      hsl(283, 60%, 55%) calc(var(--space)*5), 
+      hsl(326, 59%, 51%) calc(var(--space)*6), 
+      hsl(326, 59%, 51%) calc(var(--space)*7), 
+      hsl(283, 60%, 55%) calc(var(--space)*8), 
+      hsl(228, 59%, 55%) calc(var(--space)*9), 
+      hsl(176, 54%, 49%) calc(var(--space)*10), 
+      hsl(93, 56%, 50%) calc(var(--space)*11), 
+      hsl(53, 65%, 60%) calc(var(--space)*12) 
+    );
+
+  background-blend-mode: 
+    lighten, 
+    multiply;
+
+  background-position: 
+    var(--cosmosbg, center center), 
+    calc( 15% + ( var(--pointer-from-left) * 70% ) ) calc( 15% + ( var(--pointer-from-top) * 70% ) ), 
+    center center;
+
+  background-size: cover, 400% 900%, cover;
+
+  filter: brightness(1.25) contrast(1.75) saturate(.8);
+  mix-blend-mode: overlay;
+}
+
+.card[data-fx="galaxy"] .card-shine:after {
+  content: "";
+  z-index: 3;
+
+  background-image: 
+    url("./assets/fx/cosmos-top-trans.png"), 
+    repeating-linear-gradient(
+      82deg, 
+      hsl(53, 65%, 60%) calc(var(--space)*1), 
+      hsl(93, 56%, 50%) calc(var(--space)*2), 
+      hsl(176, 54%, 49%) calc(var(--space)*3), 
+      hsl(228, 59%, 55%) calc(var(--space)*4), 
+      hsl(283, 60%, 55%) calc(var(--space)*5), 
+      hsl(326, 59%, 51%) calc(var(--space)*6), 
+      hsl(326, 59%, 51%) calc(var(--space)*7), 
+      hsl(283, 60%, 55%) calc(var(--space)*8), 
+      hsl(228, 59%, 55%) calc(var(--space)*9), 
+      hsl(176, 54%, 49%) calc(var(--space)*10), 
+      hsl(93, 56%, 50%) calc(var(--space)*11), 
+      hsl(53, 65%, 60%) calc(var(--space)*12) 
+    );
+
+  background-blend-mode: 
+    multiply, 
+    multiply;
+
+  background-position: 
+    var(--cosmosbg, center center), 
+    calc( 20% + ( var(--pointer-from-left) * 60% ) ) calc( 20% + ( var(--pointer-from-top) * 60% ) ), 
+    center center;
+
+  background-size: cover, 400% 900%, cover;
+
+  filter: brightness(1.25) contrast(1.75) saturate(.8);
+  mix-blend-mode: multiply;
+}
+
+.card[data-fx="galaxy"] .card-glare {
+  background-image: 
+    radial-gradient( 
+      farthest-corner circle at var(--pointer-x) var(--pointer-y), 
+      hsla(204, 100%, 95%, 0.8) 5%, 
+      hsla(250, 15%, 20%, 1) 150% 
+    );
+  filter: brightness(.75) contrast(2) saturate(2);
+  mix-blend-mode: overlay;
+  opacity: calc( var(--card-opacity) * ( 0.25 + var(--pointer-from-center) ) );
+}
+
+.card[data-fx="galaxy"] .card-glare:after {
+  content: "";
+
+  background-image: 
+    radial-gradient( farthest-corner circle at 
+      var(--pointer-x) var(--pointer-y), 
+      hsl(280, 100%, 96%) 5%, 
+      hsl(0, 0%, 10%) 60%
+    );
+
+  filter: brightness(.75) contrast(2.5) saturate(2);
+  mix-blend-mode: soft-light;
+  opacity: calc( 1 - var(--pointer-from-top) * .75 );
+}
+
+/* ────────────────────────────── rainbow ────────────────────────────── */
+.card[data-fx="rainbow"] .card-shine {
+  --imgsize: cover;
+
+  --r-clr-1: hsl(0, 57%, 37%);
+  --r-clr-2: hsl(40, 53%, 39%);
+  --r-clr-3: hsl(90, 60%, 35%);
+  --r-clr-4: hsl(180, 60%, 35%);
+  --r-clr-5: hsl(180, 60%, 35%);
+  --r-clr-6: hsl(210, 57%, 39%);
+  --r-clr-7: hsl(280, 55%, 31%);
+
+  background-image: 
+    repeating-linear-gradient( 
+      var(--angle), 
+        hsla(283, 49%, 60%, 0.75) calc(var(--space)*1), 
+        hsla(2, 70%, 58%, 0.75) calc(var(--space)*2), 
+        hsla(53, 67%, 53%, 0.75) calc(var(--space)*3), 
+        hsla(93, 56%, 52%, 0.75) calc(var(--space)*4), 
+        hsla(176, 38%, 50%, 0.75) calc(var(--space)*5), 
+        hsla(228, 100%, 77%, 0.75) calc(var(--space)*6), 
+        hsla(283, 49%, 61%, 0.75) calc(var(--space)*7) 
+      ),
+    var(--glitter),
+    linear-gradient( -30deg, 
+      var(--r-clr-1), var(--r-clr-2), var(--r-clr-3), var(--r-clr-4), var(--r-clr-5), var(--r-clr-6), var(--r-clr-7), 
+      var(--r-clr-1), var(--r-clr-2), var(--r-clr-3), var(--r-clr-4), var(--r-clr-5), var(--r-clr-6), var(--r-clr-7), 
+      var(--r-clr-1), var(--r-clr-2), var(--r-clr-3), var(--r-clr-4), var(--r-clr-5), var(--r-clr-6), var(--r-clr-7), 
+      var(--r-clr-1)
+    );
+
+  background-size: 200% 400%, var(--glittersize) var(--glittersize), 400% 400%;
+  background-position: 0% calc(var(--background-y) * 1), center center, calc( var(--background-x) * 1.5) calc( var(--background-y) * 1.5 );
+  background-blend-mode: luminosity, overlay;
+  filter: brightness(calc((var(--pointer-from-center)*0.3) + 0.3)) contrast(3) saturate(1.8);
+}
+
+.card[data-fx="rainbow"] .card-shine:after {
+  content: "";
+
+  background-image: 
+    var(--glitter), 
+    linear-gradient( -60deg, 
+      var(--r-clr-1), var(--r-clr-2), var(--r-clr-3), var(--r-clr-4), var(--r-clr-5), var(--r-clr-6), var(--r-clr-7), 
+      var(--r-clr-1), var(--r-clr-2), var(--r-clr-3), var(--r-clr-4), var(--r-clr-5), var(--r-clr-6), var(--r-clr-7), 
+      var(--r-clr-1), var(--r-clr-2), var(--r-clr-3), var(--r-clr-4), var(--r-clr-5), var(--r-clr-6), var(--r-clr-7), 
+      var(--r-clr-1) 
+    );
+  background-blend-mode: overlay;
+  background-size: var(--glittersize) var(--glittersize), 400% 400%;
+  background-position: center center, calc( var(--background-x) * -1.5) calc( var(--background-y) * -1.5 );
+  filter: brightness(calc((var(--pointer-from-center)*0.5) + 0.6)) contrast(3) saturate(1);
+  mix-blend-mode: color-dodge;
+
+  opacity: calc(1.2 + (var(--pointer-from-center)/2) * -1);
+}
+
+.card[data-fx="rainbow"] .card-shine:before {
+  content: "";
+
+  background-image: var(--foil);
+  background-size: var(--imgsize);
+  background-position: center center;
+  filter: brightness(1.5) contrast(1.5);
+  opacity: calc((var(--pointer-from-center) + 0.6 ) * 0.4 );
+  background-blend-mode: difference;
+  mix-blend-mode: color-dodge;
+}
+
+.card[data-fx="rainbow"] .card-glare {
+	background-image: 
+		radial-gradient( 
+			farthest-corner circle at 
+			var(--pointer-x) var(--pointer-y), 
+			hsla(50, 20%, 90%, 0.75) 0%, 
+			hsla(150, 20%, 30%, 0.65) 45%, 
+			hsla(0, 0%, 0%, 1) 100% 
+		);
+
+	filter: brightness(.9) contrast(2);
+	opacity: calc( var(--card-opacity) * 0.75 );
+}
+
+.card[data-fx="rainbow"] .card-shine {
+  --mask: none;
+  --foil: none;
+  --imgsize: 25% auto;
+}
+
+/* ────────────────────────────── holo ────────────────────────────── */
+.card[data-fx="holo"] .card-shine {
+  --scanlines-space: 1px;
+  --scanlines-light: #666;
+  --scanlines-dark: black;
+
+  --bars: 3%;
+  --bar-color: hsla(0, 0%, 70%, 1);
+  --bar-bg: hsla(0, 0%, 0%, 1);
+
+
+  background-image: 
+    repeating-linear-gradient( 110deg, 
+      var(--violet), var(--blue), var(--green), var(--yellow), var(--red), 
+      var(--violet), var(--blue), var(--green), var(--yellow), var(--red),
+      var(--violet), var(--blue), var(--green), var(--yellow), var(--red)
+    ),
+    repeating-linear-gradient( 90deg, 
+      var(--scanlines-dark) calc(var(--scanlines-space) * 0), var(--scanlines-dark) calc(var(--scanlines-space) * 2),
+      var(--scanlines-light) calc(var(--scanlines-space) * 2), var(--scanlines-light) calc(var(--scanlines-space) * 4)
+    );
+
+  background-position: 
+    calc(((50% - var(--background-x)) * 2.6) + 50%) calc(((50% - var(--background-y)) * 3.5) + 50%),
+    center center;
+
+  background-size: 
+    400% 400%, 
+    cover;
+
+  background-blend-mode: overlay;
+  filter: brightness(1.1) contrast(1.1) saturate(1.2);
+  mix-blend-mode: color-dodge;
+}
+
+.card[data-fx="holo"] .card-shine:before {
+  content: "";
+
+  background-image:
+    repeating-linear-gradient( 90deg, 
+      var(--bar-bg) calc(var(--bars)*2), 
+      var(--bar-color) calc(var(--bars)*3), 
+      var(--bar-bg) calc(var(--bars)*3.5), 
+      var(--bar-color) calc(var(--bars)*4), 
+      var(--bar-bg) calc(var(--bars)*5), 
+      var(--bar-bg) calc(var(--bars)*14)
+    ),
+    repeating-linear-gradient( 90deg, 
+      var(--bar-bg) calc(var(--bars)*2), 
+      var(--bar-color) calc(var(--bars)*3), 
+      var(--bar-bg) calc(var(--bars)*3.5), 
+      var(--bar-color) calc(var(--bars)*4), 
+      var(--bar-bg) calc(var(--bars)*5), 
+      var(--bar-bg) calc(var(--bars)*10)
+    );
+
+  background-position: 
+    calc((((50% - var(--background-x)) * 1.65) + 50% ) + (var(--background-y) * 0.5)) var(--background-x), 
+    calc((((50% - var(--background-x)) * -0.9) + 50%) - (var(--background-y) * 0.75) ) var(--background-y);
+
+  background-size: 
+    200% 200%,
+    200% 200%;
+
+  background-blend-mode: screen;
+  filter: brightness( 1.15 ) contrast( 1.1 );
+  mix-blend-mode: hard-light;
+}
+
+.card[data-fx="holo"] .card-shine:after {
+  content: "";
+    
+  background-image: 
+    radial-gradient( 
+      farthest-corner circle 
+        at var(--pointer-x) var(--pointer-y), 
+        hsla(0, 0%, 90%, 0.8) 0%, 
+        hsla(0, 0%, 78%, 0.1) 25%, 
+        hsl(0, 0%, 0%) 90% 
+    );
+    
+  background-position: 
+    center center;
+
+  background-size:
+    cover;
+
+  mix-blend-mode: luminosity; 
+  filter: brightness(0.6) contrast(4);
+}
+
+.card[data-fx="holo"] .card-glare {
+  opacity: calc( var(--card-opacity) * .8 );
+  filter: brightness(0.8) contrast(1.5);
+  mix-blend-mode: overlay;
+}
+
+.card[data-fx="holo"] .card-glare:after {
+  content: "";
+
+  background-image: 
+    radial-gradient( 
+      farthest-corner circle at var(--pointer-x) var(--pointer-y), 
+      hsl(180, 100%, 95%) 5%, 
+      hsla(0, 0%, 39%, 0.25) 55%, 
+      hsla(0, 0%, 0%, 0.36) 110% 
+    );
+
+  mix-blend-mode: overlay;
+  filter: brightness(.6) contrast(3);
+}
+
+/* ────────────────────────────── secret ────────────────────────────── */
+.card[data-fx="secret"] .card-shine {
+  --foil: url("./assets/fx/geometric.png"); 
+  --imgsize: 33%;
+  
+  filter: brightness( calc( ( var( --pointer-from-center ) * 0.3 ) + 0.2 ) ) contrast(2) saturate(0.75);
+}
+
+.card[data-fx="secret"] .card-glare {
+  filter: brightness(.5) contrast(1);
+}
+
+.card[data-fx="secret"] .card-shine {
+  background-image: 
+    var(--glitter), 
+    var(--glitter), 
+    radial-gradient( 
+      farthest-corner circle at var(--pointer-x) var(--pointer-y), 
+      hsl(152.7, 21.6%, 10%) 10%, 
+      hsla(177, 22%, 80%, 0.1) 50%, 
+      hsla(0, 0%, 95%, .98) 90% 
+    ), 
+    linear-gradient( 45deg, hsl(46, 95%, 50%), hsl(52, 100%, 69%) );
+
+  background-size: 
+    var(--glittersize) var(--glittersize), 
+    var(--glittersize) var(--glittersize), 
+    cover, 
+    cover;
+
+  background-position: 
+    40% 45%, 
+    55% 55%, 
+    center center, 
+    center center;
+
+  background-blend-mode: soft-light, darken, color;
+  filter: brightness(1) contrast(1) saturate(1);
+  mix-blend-mode: color-dodge;
+}
+
+.card[data-fx="secret"] .card-shine::before {
+  content: "";
+  
+  background-image: 
+    var(--foil), 
+    radial-gradient( 
+      farthest-corner circle at var(--pointer-x) var(--pointer-y), 
+      hsla(50, 20%, 90%, 0.95) 10%,
+      hsla(324, 22%, 63%, 0.5) 50%, 
+      hsl(0, 0%, 0%) 90% 
+    );
+  background-size: var(--imgsize), cover;
+  background-position: center center, center center;
+  background-blend-mode: color-burn;
+
+  mix-blend-mode: exclusion;
+  filter: brightness(1) contrast(1) saturate(1);
+  opacity: 1;
+}
+
+.card[data-fx="secret"] .card-shine::after {
+  content: "";
+
+  background-image: 
+    var(--glitter), 
+    conic-gradient(  
+      var(--sunpillar-clr-4),
+      var(--sunpillar-clr-5), 
+      var(--sunpillar-clr-6), 
+      var(--sunpillar-clr-1), 
+      var(--sunpillar-clr-2), 
+      var(--sunpillar-clr-3), 
+      var(--sunpillar-clr-4)
+    );
+  background-size: var(--glittersize) var(--glittersize), cover;
+  background-blend-mode: luminosity;
+
+  filter: brightness(calc((var(--pointer-from-center)*0.5) + 0.6)) contrast(2) saturate(3);
+  mix-blend-mode: soft-light;
+}
+
+.card[data-fx="secret"] .card-glare {
+  background-image: 
+    radial-gradient( 
+      farthest-corner circle at var(--pointer-x) var(--pointer-y), 
+      hsla(40, 100%, 95%, 0.2) 10%, 
+      hsla(40, 20%, 5%, 1) 180%
+    );
+  filter: brightness(1) contrast(1);
+  mix-blend-mode: hard-light;
+}
+
+/* ────────────────────────────── v-max ────────────────────────────── */
+.card[data-fx="v-max"] .card-shine,
+.card[data-fx="v-max"] .card-shine:after {
+  --mask: none;
+  --foil: url("./assets/fx/vmaxbg.jpg"); 
+  --imgsize: 60% 30%;
+}
+
+.card[data-fx="v-max"] .card-shine {
+  --space: 6%;
+  --angle: 133deg;
+  --imgsize: cover;
+
+  background-image:
+    var(--foil),
+    repeating-linear-gradient( -33deg, 
+      hsl(2, 70%, 47%) calc(var(--space)*1),  
+      hsl(228, 60%, 64%) calc(var(--space)*2), 
+      hsl(176, 55%, 39%) calc(var(--space)*3), 
+      hsl(123, 68%, 35%) calc(var(--space)*4), 
+      hsl(283, 75%, 57%) calc(var(--space)*5), 
+      hsl(2, 70%, 47%) calc(var(--space)*6)
+    ),
+    repeating-linear-gradient( 
+      var(--angle), 
+      hsla(227, 53%, 12%, 0.5) 0%, 
+      hsl(180, 10%, 50%) 2.5%, 
+      hsl(83, 50%, 35%) 5%, 
+      hsl(180, 10%, 50%) 7.5%, 
+      hsla(227, 53%, 12%, 0.5) 10% , 
+      hsla(227, 53%, 12%, 0.5) 15% 
+      ),
+    radial-gradient(
+      farthest-corner circle 
+      at var(--pointer-x) var(--pointer-y),
+      hsla(189, 76%, 77%, 0.6) 0%, 
+      hsla(147, 59%, 77%, 0.6) 25%, 
+      hsla(271, 55%, 69%, 0.6) 50%, 
+      hsla(355, 56%, 72%, 0.6) 75%
+    );
+
+  background-blend-mode: difference, luminosity, soft-light;
+  background-size: var(--imgsize), 1100% 1100%, 600% 600%, 200% 200%;
+  background-position: 
+    center, 
+    var(--background-x) var(--background-y), 
+    var(--background-x) var(--background-y), 
+    var(--background-x) var(--background-y);
+
+  filter: brightness(calc((var(--pointer-from-center) * .4) + .4)) contrast(2) saturate(1);
+}
+
+.card[data-fx="v-max"] .card-shine:after {
+  content: "";
+
+  background-image: repeating-linear-gradient( 0deg, 
+    var(--sunpillar-clr-1) calc(var(--space)*1), 
+    var(--sunpillar-clr-2) calc(var(--space)*2), 
+    var(--sunpillar-clr-3) calc(var(--space)*3), 
+    var(--sunpillar-clr-4) calc(var(--space)*4), 
+    var(--sunpillar-clr-5) calc(var(--space)*5), 
+    var(--sunpillar-clr-6) calc(var(--space)*6), 
+    var(--sunpillar-clr-1) calc(var(--space)*7)
+  ),
+  repeating-linear-gradient( 
+    var(--angle), 
+    #0e152e 0%, 
+    hsl(180, 10%, 60%) 3.8%, 
+    hsl(180, 29%, 66%) 4.5%, 
+    hsl(180, 10%, 60%) 5.2%, 
+    #0e152e 10% , 
+    #0e152e 12% 
+  );
+
+  background-blend-mode: hue, hard-light;
+  background-size: 200% 700%, 300% 100%, 200% 100%;
+  background-position: 0% var(--background-y), var(--background-x) var(--background-y), var(--background-x) var(--background-y);
+
+  mix-blend-mode: lighten;
+  opacity: calc( (0.3 * var(--card-opacity)) + var(--card-opacity) * var(--pointer-from-center) * 0.5 );
+  filter: saturate(1.5);
+}
+
+.card[data-fx="v-max"] .card-glare {
+  mix-blend-mode: hard-light;
+  filter: brightness(1) contrast(1);
+
+  background-image: 
+    radial-gradient( 
+      farthest-corner circle at 
+      var(--pointer-x) var(--pointer-y), 
+      hsla(0, 0%, 100%, 0.75) 0%, 
+      hsl(0, 0%, 0%) 120% 
+    );
+
+    opacity: calc( (0.2 * var(--card-opacity)) + var(--card-opacity) * var(--pointer-from-center) * 0.8 );
+}
+
+.card[data-fx="v-max"] .card-shine {
+  filter: brightness(calc((var(--pointer-from-center) * .4) + .4)) contrast(2) saturate(1);
+}
+
